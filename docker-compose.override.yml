@@ -1,0 +1,16 @@
+# docker-compose.override.yml
+
+version: '3.8'
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    
+    command: npm run dev:api
+
+    volumes:
+      - .:/data/app
+      - /data/app/node_modules

@@ -1,0 +1,23 @@
+# ------------------------------------
+# ALIASES FOR THE 'CONDUCTOR' PROJECT
+# ------------------------------------
+
+# Docker Compose shortcuts
+alias dcu="docker-compose up --build"
+alias dcd="docker-compose down"
+alias dcr="docker-compose up --build --force-recreate"
+alias dcl="docker-compose logs -f"
+alias dca="docker-compose ps" # List active containers
+
+# ------------------------------------
+# UNALIAS COMMANDS FOR CLEANUP
+# ------------------------------------
+# This function will be called to remove the aliases when we're done.
+cleanup_aliases() {
+    unalias dcu
+    unalias dcd
+    unalias dcr
+    unalias dcl
+    unalias dca
+    unalias ping-api
+}

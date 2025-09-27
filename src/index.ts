@@ -1,8 +1,6 @@
 import Fastify from "fastify";
 
-const app = Fastify({
-  logger: true,
-});
+const app = Fastify();
 
 app.get("/", async function handler(req, res) {
   return { success: "1000" };

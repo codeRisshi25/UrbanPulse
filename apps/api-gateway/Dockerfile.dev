@@ -13,5 +13,5 @@ RUN pnpm install
 
 EXPOSE 3000
 
-CMD ["pnpm", "run", "dev:api"]
+CMD ["pnpm", "--filter", "api-gateway", "run", "dev:api"]
 

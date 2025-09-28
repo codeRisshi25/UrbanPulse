@@ -8,7 +8,7 @@ alias dcd="docker-compose down"
 alias dcr="docker-compose up --build --force-recreate"
 alias dcl="docker-compose logs -f"
 alias dca="docker-compose ps" # List active containers
-alias dc="docker compose exec api /bin/sh" 
+alias dc="docker compose exec api-gateway /bin/bash" 
 
 # ------------------------------------
 # UNALIAS COMMANDS FOR CLEANUP

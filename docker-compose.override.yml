@@ -1,14 +1,12 @@
-# docker-compose.override.yml
+# docker-compose.override.yml (DEVELOPMENT ONLY)
 services:
-  api:
+  api-gateway:
     build:
       context: .
-      dockerfile: Dockerfile.dev
-    ports:
-      - "3000:3000"
-    
-    command: npm run dev:api
-
+      dockerfile: ./apps/api-gateway/Dockerfile.dev
+    command: pnpm --filter api-gateway run dev:api
     volumes:
+      # Mount the relevant source code
       - .:/data/app
-      - /data/app/node_modules
+      - /data/app/node_modules         
+

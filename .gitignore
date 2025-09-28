@@ -2,3 +2,4 @@
 package-lock.json
 .env
 /prisma/generated/prisma
+pnpm-lock.yaml

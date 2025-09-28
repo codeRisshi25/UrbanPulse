@@ -1,28 +1,35 @@
-# docker-compose.yml
+# docker-compose.yml (PRODUCTION BASE)
 services:
   postgres:
-    container_name: pgdb
-    image: postgres:14-alpine
+    image: postgis/postgis:14-3.4 # Use the official PostGIS image
     env_file:
       - ./.env
     ports:
       - "5432:5432"
     volumes:
-      - pgdata:/data/postgresql/data
+      - pgdata:/var/lib/postgresql/data # Standard Postgres data path
 
   redis:
     image: redis:7-alpine
+    ports:
+      - "6379:6379"
 
-  api:
-    build: .
+  api-gateway:
+    build:
+      # Tell Docker to build the image using the api-gateway's context
+      context: ./apps/api-gateway
+      dockerfile: ../../Dockerfile # Point to the root Dockerfile
     ports:
       - '3000:3000'
     env_file:
       - .env
-    command: nodemon dist/index.js
+    # The CMD from the Dockerfile will be used (pnpm run start:api)
     depends_on:
       - postgres
       - redis
+
+  # You would add your other services (e.g., ride-sharing-worker) here
+
 volumes:
     pgdata:
       driver: local

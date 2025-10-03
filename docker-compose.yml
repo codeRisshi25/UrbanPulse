@@ -28,8 +28,6 @@ services:
       - postgres
       - redis
 
-  # You would add your other services (e.g., ride-sharing-worker) here
-
 volumes:
     pgdata:
       driver: local

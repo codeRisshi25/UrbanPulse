@@ -4,3 +4,4 @@ package-lock.json
 /prisma/generated/prisma
 pnpm-lock.yaml
 .prettierrc
+generated/

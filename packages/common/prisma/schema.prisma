@@ -14,8 +14,48 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Job {
-  id    Int     @id @default(autoincrement())
-  type String 
+enum rideStatus {
+  requested
+  accepted
+  started
+  completed
 }
 
+// generic user model that extends to both types
+model User {
+  id String @id @default(cuid())
+  name String?
+  number Int @unique
+  updatedAt DateTime @default(now())
+  driver Driver?
+  rider Rider?
+}
+
+model Driver {
+  id String @id @default(cuid())
+  userId String @unique
+  user User @relation(fields: [userId],references: [id])
+  isActive Boolean @default(false)
+  location Unsupported("Point")?
+  trips Trip[]
+}
+
+model Rider {
+  id String @id @default(cuid())
+  userId String @unique
+  user User @relation(fields: [userId],references: [id])
+  trips Trip[]
+}
+
+model Trip {
+  id              String    @id @default(cuid())
+  riderId         String
+  rider           Rider     @relation(fields: [riderId], references: [id])
+  driverId        String?
+  driver          Driver?   @relation(fields: [driverId], references: [id])
+  status          rideStatus @default(requested)    
+  pickupLocation  Unsupported("Point")
+  dropoffLocation Unsupported("Point")
+  createdAt       DateTime  @default(now())
+  completedAt     DateTime?
+}

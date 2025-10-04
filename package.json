@@ -135,11 +135,14 @@
     "yn": "^3.1.1"
   },
   "devDependencies": {
-    "prettier": "^3.6.2"
+    "prettier": "^3.6.2",
+    "turbo": "^2.5.8"
   },
   "private": true,
+  "packageManager": "pnpm@10.18.0",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "turbo run build",
+    "dev": "turbo run dev",
     "format": "prettier --write \"apps/**/*.{ts,js,json,md}\""
   },
   "repository": {

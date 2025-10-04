@@ -1,0 +1,21 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
+    },
+    "dev": {
+      "cache": false,
+      "passThroughEnv": [
+        "NODE_ENV",
+        "LOGGING_TOKEN",
+        "LOGGING_URL",
+        "APP_PORT",
+        "DATABASE_URL",
+        "REDIS_HOST",
+        "REDIS_PORT"
+      ]
+    }
+  }
+}

@@ -1,0 +1,9 @@
+# docker-compose.override.yml (DEVELOPMENT ONLY)
+services:
+  api-gateway:
+    env_file:
+      - ./.env
+    command: pnpm dev
+    volumes:
+      - .:/app
+      - /app/node_modules

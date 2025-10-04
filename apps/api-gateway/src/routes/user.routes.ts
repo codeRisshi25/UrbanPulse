@@ -11,7 +11,7 @@ export default async function (app: FastifyInstance, ops: any) {
         const username = request.query.username; 
         reply.code(201);
         return {
-            "hello": username // Return the actual username for verification
+            "hello": username 
         };
     });
 }

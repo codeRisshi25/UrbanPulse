@@ -6,6 +6,7 @@
     psql -h host -U user -d db
 ```
 
-# Last context
+# small dev log
 
 - postgres migration on check
+- turbo repo

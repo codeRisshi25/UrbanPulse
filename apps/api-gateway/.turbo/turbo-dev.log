@@ -7,35 +7,27 @@
 [33m[nodemon] watching path(s): *.*[39m
 [33m[nodemon] watching extensions: ts,json[39m
 [32m[nodemon] starting `node --loader ts-node/esm src/index.ts`[39m
-(node:107) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+(node:108) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
 --import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("ts-node/esm", pathToFileURL("./"));'
 (Use `node --trace-warnings ...` to show where the warning was created)
-LOGGING TOKEN IS: VxndQWpFR8j8xPFxEVMgYLB8
-(node:107) [FSTWRN003] FastifyWarning: The listen method mixes async and callback styles that may lead to unhandled rejections. Please use only one of them.
+(node:108) [FSTWRN003] FastifyWarning: The listen method mixes async and callback styles that may lead to unhandled rejections. Please use only one of them.
 Redis ping: PONG
 Server listening on http://127.0.0.1:3000
-(node:107) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+(node:108) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
 --import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("ts-node/esm", pathToFileURL("./"));'
 (Use `node --trace-warnings ...` to show where the warning was created)
-Error: Unauthorized
-    at Node.sync [as _sync] (/app/node_modules/.pnpm/@logtail+node@0.5.6/node_modules/@logtail/node/dist/cjs/node.js:55:19)
-    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
-    at async handler (/app/node_modules/.pnpm/@logtail+tools@0.5.6/node_modules/@logtail/tools/dist/cjs/throttle.js:36:37)
-Error: Unauthorized
-    at Node.sync [as _sync] (/app/node_modules/.pnpm/@logtail+node@0.5.6/node_modules/@logtail/node/dist/cjs/node.js:55:19)
-    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
-    at async handler (/app/node_modules/.pnpm/@logtail+tools@0.5.6/node_modules/@logtail/tools/dist/cjs/throttle.js:36:37)
-Error: Unauthorized
-    at Node.sync [as _sync] (/app/node_modules/.pnpm/@logtail+node@0.5.6/node_modules/@logtail/node/dist/cjs/node.js:55:19)
-    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
-    at async handler (/app/node_modules/.pnpm/@logtail+tools@0.5.6/node_modules/@logtail/tools/dist/cjs/throttle.js:36:37)
 [32m[nodemon] restarting due to changes...[39m
 [32m[nodemon] starting `node --loader ts-node/esm src/index.ts`[39m
-(node:128) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+(node:129) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
 --import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("ts-node/esm", pathToFileURL("./"));'
 (Use `node --trace-warnings ...` to show where the warning was created)
-(node:128) [FSTWRN003] FastifyWarning: The listen method mixes async and callback styles that may lead to unhandled rejections. Please use only one of them.
-Redis ping: PONG
-Server listening on http://127.0.0.1:3000
-(node:128) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+(node:129) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("ts-node/esm", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node --loader ts-node/esm src/index.ts`[39m
+(node:146) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("ts-node/esm", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:146) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
 --import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("ts-node/esm", pathToFileURL("./"));'

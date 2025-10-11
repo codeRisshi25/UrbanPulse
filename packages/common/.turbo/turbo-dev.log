@@ -1,0 +1,23 @@
+
+> common@1.0.0 dev /app/packages/common
+> tsc -w
+
+
+8:49:21 PM - Starting compilation in watch mode...
+
+
+8:49:23 PM - Found 0 errors. Watching for file changes.
+
+8:57:07 PM - File change detected. Starting incremental compilation...
+
+
+8:57:07 PM - Found 0 errors. Watching for file changes.
+
+8:57:10 PM - File change detected. Starting incremental compilation...
+
+
+8:57:10 PM - Found 0 errors. Watching for file changes.
+
+8:57:13 PM - File change detected. Starting incremental compilation...
+
+

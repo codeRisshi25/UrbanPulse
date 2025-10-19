@@ -6,3 +6,6 @@ pnpm-lock.yaml
 .prettierrc
 generated/
 dist/
+turbo/
+tsconfig.tsbuildinfo
+*.log

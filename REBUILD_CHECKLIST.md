@@ -10,7 +10,7 @@
 - **Type**: Ride-sharing/transportation platform API
 - **Current Framework**: Fastify (migrating to Express)
 - **Architecture**: Monorepo (pnpm + Turborepo)
-
+Cannot find name 'console'. Do you need to change your target library? Try changing the 'lib' compiler option to include 'dom'. (ts 2584)
 ---
 
 ## 🏗️ Infrastructure & Tooling

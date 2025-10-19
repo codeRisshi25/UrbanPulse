@@ -1,17 +1,15 @@
 import pino from 'pino';
 
-const transport = pino.transport({
-  targets: [
-    {
-      target: 'pino/file',
-      options: { destination: '../logs/dev.log' },
+const logger = pino({
+  level: process.env.LOG_LEVEL || 'info',
+  transport: {
+    target: 'pino-pretty',
+    options: {
+      colorize: true,
+      translateTime: 'SYS:standard',
+      ignore: 'pid,hostname',
     },
-    {
-      target: 'pino-pretty',
-    },
-  ],
+  },
 });
-
-const logger = pino(transport);
 
 export default logger;

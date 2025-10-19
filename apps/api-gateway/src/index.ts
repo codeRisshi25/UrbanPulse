@@ -1,4 +1,6 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -7,8 +9,6 @@ import logger from './logger.js';
 import router from './routes.js';
 
 const app = express();
-
-// Security middleware
 app.use(helmet());
 
 // CORS middleware

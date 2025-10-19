@@ -14,15 +14,8 @@ router.get('/health', (req, res) => {
   });
 });
 
-// Legacy meow route (for testing)
-router.get('/meow', async (req, res) => {
-  logger.info('Someone just hit the meow route');
-  res.send({ 'Hello World': 'meow' });
-});
-
 // Auth routes
 router.use('/auth', authRouter);
-
 // User routes
 router.use('/user', userRouter);
 

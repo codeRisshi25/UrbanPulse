@@ -94,7 +94,7 @@ Cannot find name 'console'. Do you need to change your target library? Try chang
   - `format`: prettier formatting
 
 ### API Gateway (`apps/api-gateway/`)
-- [ ] **Dependencies**
+- [x] **Dependencies**
   - Core: `express`, `dotenv`
   - Auth: `jsonwebtoken` (replace `@fastify/jwt`)
   - Cache: `ioredis` (replace `@fastify/redis`)
@@ -103,7 +103,7 @@ Cannot find name 'console'. Do you need to change your target library? Try chang
   - Security: `helmet`, `cors`, `compression`
   - Dev: `nodemon`, `ts-node`, `typescript`
 
-- [ ] **Dev Dependencies**
+- [x] **Dev Dependencies**
   - `@types/node`
   - `@types/express`
   - `@types/jsonwebtoken`
@@ -114,33 +114,33 @@ Cannot find name 'console'. Do you need to change your target library? Try chang
   - `ts-node`
   - `typescript`
 
-- [ ] **Scripts**
+- [x] **Scripts**
   - `build`: `tsc -p tsconfig.json`
   - `dev`: `nodemon --exec 'node --loader ts-node/esm' src/app.ts`
   - `start`: `node ./dist/app.js`
 
-- [ ] **TypeScript Config**
+- [x] **TypeScript Config**
   - Extends base config
   - Output: `./dist`
   - Root: `./src`
   - References: `common` package
 
 ### Common Package (`packages/common/`)
-- [ ] **Dependencies**
+- [x] **Dependencies**
   - `@prisma/client`
   - `dotenv`
   - `zod`
 
-- [ ] **Dev Dependencies**
+- [x] **Dev Dependencies**
   - `@types/node`
   - `prisma`
 
-- [ ] **Scripts**
+- [x] **Scripts**
   - `build`: `tsc -p tsconfig.json`
   - `dev`: `tsc -w`
   - `postinstall`: `prisma generate`
 
-- [ ] **Prisma Schema Location**
+- [x] **Prisma Schema Location**
   - `prisma/schema.prisma`
 
 ---
@@ -149,42 +149,42 @@ Cannot find name 'console'. Do you need to change your target library? Try chang
 
 ### Prisma Schema (`packages/common/prisma/schema.prisma`)
 
-- [ ] **Enums**
+- [x] **Enums**
   - `RideStatus`: REQUESTED, ACCEPTED, STARTED, COMPLETED, CANCELLED
 
-- [ ] **Models**
+- [x] **Models**
 
   **User Model**
-  - [ ] `id` - String (cuid)
-  - [ ] `name` - String (optional)
-  - [ ] `number` - String (unique)
-  - [ ] `password` - String
-  - [ ] `createdAt` - DateTime (auto)
-  - [ ] `updatedAt` - DateTime (auto)
-  - [ ] Relations: `driver`, `rider`
+  - [x] `id` - String (cuid)
+  - [x] `name` - String (optional)
+  - [x] `number` - String (unique)
+  - [x] `password` - String
+  - [x] `createdAt` - DateTime (auto)
+  - [x] `updatedAt` - DateTime (auto)
+  - [x] Relations: `driver`, `rider`
 
   **Driver Model**
-  - [ ] `id` - String (cuid)
-  - [ ] `userId` - String (unique, FK to User)
-  - [ ] `isActive` - Boolean (default: false)
-  - [ ] `location` - Point (PostGIS)
-  - [ ] Relations: `user`, `trips[]`
+  - [x] `id` - String (cuid)
+  - [x] `userId` - String (unique, FK to User)
+  - [x] `isActive` - Boolean (default: false)
+  - [x] `location` - Point (PostGIS)
+  - [x] Relations: `user`, `trips[]`
 
   **Rider Model**
-  - [ ] `id` - String (cuid)
-  - [ ] `userId` - String (unique, FK to User)
-  - [ ] Relations: `user`, `trips[]`
+  - [x] `id` - String (cuid)
+  - [x] `userId` - String (unique, FK to User)
+  - [x] Relations: `user`, `trips[]`
 
   **Trip Model**
-  - [ ] `id` - String (cuid)
-  - [ ] `riderId` - String (FK to Rider)
-  - [ ] `driverId` - String (optional, FK to Driver)
-  - [ ] `status` - RideStatus (default: REQUESTED)
-  - [ ] `pickupLocation` - Point (PostGIS)
-  - [ ] `dropoffLocation` - Point (PostGIS)
-  - [ ] `createdAt` - DateTime (auto)
-  - [ ] `completedAt` - DateTime (optional)
-  - [ ] Relations: `rider`, `driver`
+  - [x] `id` - String (cuid)
+  - [x] `riderId` - String (FK to Rider)
+  - [x] `driverId` - String (optional, FK to Driver)
+  - [x] `status` - RideStatus (default: REQUESTED)
+  - [x] `pickupLocation` - Point (PostGIS)
+  - [x] `dropoffLocation` - Point (PostGIS)
+  - [x] `createdAt` - DateTime (auto)
+  - [x] `completedAt` - DateTime (optional)
+  - [x] Relations: `rider`, `driver`
 
 - [ ] **Prisma Client Generation**
   - Generated on `postinstall`

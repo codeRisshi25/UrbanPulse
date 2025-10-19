@@ -1,17 +1,19 @@
-import Fastify from 'fastify';
+import pino from 'pino';
 
-// initializing the fasitfy app
-const app = Fastify({
-  logger: {
+const isDevelopment = process.env.NODE_ENV !== 'production';
+
+const logger = pino({
+  level: process.env.LOG_LEVEL || 'info',
+  ...(isDevelopment && {
     transport: {
-      target: '@logtail/pino',
+      target: 'pino-pretty',
       options: {
-        sourceToken: process.env.LOGGING_TOKEN,
-        options: { endpoint: process.env.LOGGING_URL },
+        colorize: true,
+        translateTime: 'SYS:standard',
+        ignore: 'pid,hostname',
       },
     },
-  },
+  }),
 });
 
-export const logger = app.log; // universal logger
-export default app;
+export default logger;

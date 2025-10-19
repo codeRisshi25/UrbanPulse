@@ -1,32 +1,82 @@
-import app from './logger.js';
-import { logger } from './logger.js';
-import redis from '@fastify/redis';
-import userRoutes from './routes/user.routes.js';
+import dotenv from 'dotenv';
+dotenv.config();
 
-// register a redis client
-app.register(redis, {
-  host: process.env.REDIS_HOST || 'redis',
-  port: Number(process.env.REDIS_PORT) || 6379,
-  closeClient: true,
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import compression from 'compression';
+import logger from './logger.js';
+import router from './routes.js';
+
+const app = express();
+app.use(helmet());
+
+// CORS middleware
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN || '*',
+    credentials: true,
+  }),
+);
+
+// Compression middleware
+app.use(compression());
+
+// Body parser middleware (must come before routes)
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Request logging middleware
+app.use((req, res, next) => {
+  logger.info(
+    {
+      method: req.method,
+      url: req.url,
+      ip: req.ip,
+    },
+    'Incoming request',
+  );
+  next();
 });
 
-// register routes
-app.register(userRoutes, { prefix: '/api' });
+// Routes
+app.use('/', router);
 
-app.get('/', async (req, res) => {
-  return { success: '1000' };
+// Global error handler
+app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  logger.error(err, 'Unhandled error');
+
+  res.status(500).json({
+    success: false,
+    message: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message,
+  });
 });
 
-const start = async () => {
-  try {
-    const address = await app.listen({ port: 3000, host: '0.0.0.0' });
-    logger.info(`Server listening on ${address}`);
-    const pong = await app.redis.ping();
-    logger.info(`Redis ping: ${pong}`);
-  } catch (err) {
-    logger.error(err);
-    process.exit(1);
-  }
-};
+const PORT = process.env.PORT || 3001;
 
-start();
+app.listen(PORT, () => {
+  logger.info(`Server started on port ${PORT}`);
+  logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  logger.info('SIGTERM received, shutting down gracefully');
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  logger.info('SIGINT received, shutting down gracefully');
+  process.exit(0);
+});
+
+// Unhandled promise rejection handler
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error({ reason, promise }, 'Unhandled Promise Rejection');
+});
+
+// Uncaught exception handler
+process.on('uncaughtException', (error) => {
+  logger.error(error, 'Uncaught Exception');
+  process.exit(1);
+});

@@ -84,11 +84,11 @@ Cannot find name 'console'. Do you need to change your target library? Try chang
 ## 📦 Package Structure
 
 ### Root Package (`/`)
-- [ ] Dependencies
+- [x] Dependencies
   - All workspace dependencies aggregated
   - `nodemon`, `pino`, `prisma`, `ts-node`, `typescript`
 
-- [ ] Scripts
+- [x] Scripts
   - `build`: `turbo run build`
   - `dev`: `turbo run dev`
   - `format`: prettier formatting

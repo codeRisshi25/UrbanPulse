@@ -6,8 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider   = "postgresql"
-  url        = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 enum RideStatus {
@@ -20,41 +20,41 @@ enum RideStatus {
 
 // generic user model that extends to both types
 model User {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid())
   name      String?
-  number    String   @unique 
-  password  String          
-  createdAt DateTime @default(now()) 
-  updatedAt DateTime @updatedAt    
+  number    String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   driver    Driver?
   rider     Rider?
 }
 
 model Driver {
-  id        String    @id @default(cuid())
-  userId    String    @unique
-  user      User      @relation(fields: [userId], references: [id])
-  isActive  Boolean   @default(false)
-  location  Unsupported("Point")?
-  trips     Trip[]
+  id       String                               @id @default(uuid())
+  userId   String                               @unique
+  user     User                                 @relation(fields: [userId], references: [id])
+  isActive Boolean                              @default(false)
+  location Unsupported("geometry(Point,4326)")?
+  trips    Trip[]
 }
 
 model Rider {
-  id        String    @id @default(cuid())
-  userId    String    @unique
-  user      User      @relation(fields: [userId], references: [id])
-  trips     Trip[]
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+  trips  Trip[]
 }
 
 model Trip {
-  id              String      @id @default(cuid())
+  id              String                              @id @default(uuid())
   riderId         String
-  rider           Rider       @relation(fields: [riderId], references: [id])
+  rider           Rider                               @relation(fields: [riderId], references: [id])
   driverId        String?
-  driver          Driver?     @relation(fields: [driverId], references: [id])
-  status          RideStatus  @default(REQUESTED)    
-  pickupLocation  Unsupported("Point")
-  dropoffLocation Unsupported("Point")
-  createdAt       DateTime    @default(now())
+  driver          Driver?                             @relation(fields: [driverId], references: [id])
+  status          RideStatus                          @default(REQUESTED)
+  pickupLocation  Unsupported("geometry(Point,4326)")
+  dropoffLocation Unsupported("geometry(Point,4326)")
+  createdAt       DateTime                            @default(now())
   completedAt     DateTime?
 }

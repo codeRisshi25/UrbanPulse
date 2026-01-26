@@ -8,8 +8,8 @@ export interface RideResponse {
   data?: {
     id: string;
     riderId: string;
-    pickupLocation: any;
-    dropoffLocation: any;
+    pickupLocation: string;
+    dropoffLocation: string;
     status: string;
     createdAt: Date;
   };
@@ -31,34 +31,31 @@ export const createRide = async (input: RideInput, riderId: string): Promise<Rid
       };
     }
 
-    // const newRide = await (prisma as any).trip.create({
-    //   data: {
-    //     riderId: rider.id,
-    //     pickupLocation: `POINT(${pickupLocation[0]} ${pickupLocation[1]})` as any,
-    //     dropoffLocation: `POINT(${dropoffLocation[0]} ${dropoffLocation[1]})` as any,
-    //     status: 'REQUESTED',
-    //   },
-    // });
-
     const result = await prisma.$queryRaw<
       {
         id: string;
         riderId: string;
-        pickupLocation: any;
-        dropoffLocation: any;
+        pickupLocation: string;
+        dropoffLocation: string;
         status: string;
         createdAt: Date;
       }[]
     >`
-  INSERT INTO "Trip" ("riderId", "pickupLocation", "dropoffLocation", "status")
-  VALUES (
-    ${rider.id}, 
-    ST_GeomFromText(${`POINT(${pickupLocation[0]} ${pickupLocation[1]})`}, 4326),
-    ST_GeomFromText(${`POINT(${dropoffLocation[0]} ${dropoffLocation[1]})`}, 4326),
-    'REQUESTED'
-  )
-  RETURNING id, "riderId", "pickupLocation", "dropoffLocation", status, "createdAt"
-`;
+      INSERT INTO "Trip" ("riderId", "pickupLocation", "dropoffLocation", "status")
+      VALUES (
+        ${rider.id}, 
+        ST_GeomFromText(${`POINT(${pickupLocation[0]} ${pickupLocation[1]})`}, 4326),
+        ST_GeomFromText(${`POINT(${dropoffLocation[0]} ${dropoffLocation[1]})`}, 4326),
+        'REQUESTED'
+      )
+      RETURNING 
+        id, 
+        "riderId", 
+        ST_AsText("pickupLocation") as "pickupLocation",
+        ST_AsText("dropoffLocation") as "dropoffLocation",
+        status, 
+        "createdAt"
+    `;
 
     const newRide = result[0];
 
@@ -70,5 +67,46 @@ export const createRide = async (input: RideInput, riderId: string): Promise<Rid
   } catch (error) {
     logger.error(error, 'Error creating ride');
     throw new Error('Could not create ride. Please try again.');
+  }
+};
+
+export const cancelRide = async (userId: string): Promise<RideResponse> => {
+  try {
+    const riderid = await prisma.rider.findUnique({
+      where: {
+        userId: userId,
+      },
+    });
+
+    const ride = await prisma.trip.findFirst({
+      where: {
+        riderId: riderid?.id,
+        status: 'REQUESTED',
+      },
+    });
+
+    if (!ride) {
+      return {
+        success: false,
+        message: 'No active ride found to cancel',
+      };
+    }
+
+    await prisma.trip.update({
+      where: {
+        id: ride.id,
+      },
+      data: {
+        status: 'CANCELLED',
+      },
+    });
+
+    return {
+      success: true,
+      message: 'Ride cancelled successfully',
+    };
+  } catch (error) {
+    logger.error(error, 'Error cancelling ride');
+    throw new Error('Could not cancel ride. Please try again.');
   }
 };

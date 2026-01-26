@@ -9,7 +9,7 @@ alias dcd="docker-compose down"
 alias dcr="docker-compose up --build --force-recreate"
 alias dcl="docker-compose logs -f"
 alias dca="docker-compose ps" # List active containers
-alias dc="docker compose exec api-gateway /bin/bash" 
+alias dc="docker compose exec api-gateway /bin/sh" 
 alias dd="docker exec -it urbanpulse-backend_postgres_1 psql -U user -d urbanpulse"
 
 # ------------------------------------

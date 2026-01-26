@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import authRouter from './routes/auth.routes.js';
 import userRouter from './routes/user.routes.js';
-import logger from './logger.js';
+import rideRouter from './routes/ride.routes.js';
 
 const router: Router = Router();
 
@@ -18,6 +18,8 @@ router.get('/health', (req, res) => {
 router.use('/auth', authRouter);
 // User routes
 router.use('/user', userRouter);
+// Ride routes
+router.use('/rides', rideRouter);
 
 // 404 handler
 router.use((req, res) => {

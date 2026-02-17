@@ -1,10 +1,13 @@
 import { z } from 'zod';
 
-const locationTuple = z.tuple([z.number(), z.number()]).describe('[longitude, latitude]');
+const longitudeSchema = z.number().min(-180).max(180);
+const latitudeSchema = z.number().min(-90).max(90);
+const locationTuple = z.tuple([longitudeSchema, latitudeSchema]).describe('[longitude, latitude]');
 
 export const driverStatusSchema = z.object({
   body: z.object({
     isActive: z.boolean(),
+    // location is required when going online; accepted but ignored when going offline
     location: locationTuple.optional(),
   }).refine(
     (data) => !data.isActive || data.location !== undefined,

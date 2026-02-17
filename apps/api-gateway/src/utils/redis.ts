@@ -15,7 +15,7 @@ const createRedisClient = (): Redis => {
       return delay;
     },
     maxRetriesPerRequest: 3,
-    lazyConnect: false,
+    lazyConnect: true,
   });
 
   client.on('connect', () => {

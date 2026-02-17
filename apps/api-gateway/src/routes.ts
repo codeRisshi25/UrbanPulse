@@ -3,6 +3,7 @@ import authRouter from './routes/auth.routes.js';
 import userRouter from './routes/user.routes.js';
 import rideRouter from './routes/ride.routes.js';
 import redis from './utils/redis.js';
+import logger from './logger.js';
 
 const router: Router = Router();
 
@@ -11,8 +12,9 @@ router.get('/health', async (req, res) => {
   let redisStatus = 'ok';
   try {
     await redis.ping();
-  } catch {
+  } catch (err) {
     redisStatus = 'error';
+    logger.warn({ err }, 'Redis health check failed');
   }
 
   res.status(200).json({

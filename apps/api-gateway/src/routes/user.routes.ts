@@ -1,6 +1,9 @@
 import { Router, Request, Response } from 'express';
-import { authenticate } from '../middleware/auth.js';
+import { authenticate, authorize } from '../middleware/auth.js';
+import { validate } from '../middleware/validate.js';
 import { getUserProfile } from '../services/auth.service.js';
+import { setDriverOnline, setDriverOffline, updateDriverLocation } from '../services/driver.service.js';
+import { driverStatusSchema, driverLocationSchema } from 'common';
 import logger from '../logger.js';
 
 const userRouter: Router = Router();
@@ -73,5 +76,60 @@ userRouter.get('/me', authenticate, async (req: Request, res: Response) => {
     });
   }
 });
+
+/**
+ * @route   PATCH /user/driver/status
+ * @desc    Toggle driver online/offline
+ * @access  Private (driver only)
+ */
+userRouter.patch(
+  '/driver/status',
+  authenticate,
+  authorize('driver'),
+  validate(driverStatusSchema),
+  async (req: Request, res: Response) => {
+    try {
+      const { isActive, location } = req.body as { isActive: boolean; location?: [number, number] };
+      const userId = req.user!.userId;
+
+      const result = isActive
+        ? await setDriverOnline(userId, location!)
+        : await setDriverOffline(userId);
+
+      return res.status(result.success ? 200 : 400).json(result);
+    } catch (error) {
+      logger.error(error, 'Error updating driver status');
+      return res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Internal server error',
+      });
+    }
+  }
+);
+
+/**
+ * @route   POST /user/driver/location
+ * @desc    Update driver's current location
+ * @access  Private (driver only)
+ */
+userRouter.post(
+  '/driver/location',
+  authenticate,
+  authorize('driver'),
+  validate(driverLocationSchema),
+  async (req: Request, res: Response) => {
+    try {
+      const { location } = req.body as { location: [number, number] };
+      const result = await updateDriverLocation(req.user!.userId, location);
+      return res.status(result.success ? 200 : 400).json(result);
+    } catch (error) {
+      logger.error(error, 'Error updating driver location');
+      return res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Internal server error',
+      });
+    }
+  }
+);
 
 export default userRouter;

@@ -1,12 +1,13 @@
 import { Router } from 'express';
 import { validate } from '../middleware/validate.js';
 import { rideSchema } from 'common';
-import { authenticate } from '../middleware/auth.js';
+import { authenticate, authorize } from '../middleware/auth.js';
 import { cancelRide, createRide } from '../services/ride.service.js';
+import { getNearbyAvailableRides } from '../services/driver.service.js';
 
 const rideRouter: Router = Router();
 
-rideRouter.post('/createRide', authenticate, validate(rideSchema), async (req, res) => {
+rideRouter.post('/create', authenticate, validate(rideSchema), async (req, res) => {
   try {
     if (!req.user) {
       return res.status(401).json({
@@ -28,7 +29,7 @@ rideRouter.post('/createRide', authenticate, validate(rideSchema), async (req, r
   }
 });
 
-rideRouter.patch('/cancelRide', authenticate, async (req, res) => {
+rideRouter.patch('/cancel', authenticate, async (req, res) => {
   try {
     if (!req.user) {
       return res.status(401).json({
@@ -42,6 +43,24 @@ rideRouter.patch('/cancelRide', authenticate, async (req, res) => {
       return res.status(400).json(ride);
     }
     return res.status(200).json(ride);
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error instanceof Error ? error.message : 'Internal server error',
+    });
+  }
+});
+
+rideRouter.get('/available', authenticate, authorize('driver'), async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Unauthorized',
+      });
+    }
+    const result = await getNearbyAvailableRides(req.user.userId);
+    return res.status(result.success ? 200 : 400).json(result);
   } catch (error) {
     return res.status(500).json({
       success: false,

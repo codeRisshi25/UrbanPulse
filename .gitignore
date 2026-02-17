@@ -10,3 +10,6 @@ turbo/
 tsconfig.tsbuildinfo
 *.log
 docs/
+.vscode/
+.turbo/
+learn/

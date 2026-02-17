@@ -2,15 +2,29 @@ import { Router } from 'express';
 import authRouter from './routes/auth.routes.js';
 import userRouter from './routes/user.routes.js';
 import rideRouter from './routes/ride.routes.js';
+import redis from './utils/redis.js';
+import logger from './logger.js';
 
 const router: Router = Router();
 
 // Health check route
-router.get('/health', (req, res) => {
+router.get('/health', async (req, res) => {
+  let redisStatus = 'ok';
+  try {
+    await redis.ping();
+  } catch (err) {
+    redisStatus = 'error';
+    logger.warn({ err }, 'Redis health check failed');
+  }
+
   res.status(200).json({
     success: true,
     message: 'API Gateway is running',
     timestamp: new Date().toISOString(),
+    services: {
+      api: 'ok',
+      redis: redisStatus,
+    },
   });
 });
 

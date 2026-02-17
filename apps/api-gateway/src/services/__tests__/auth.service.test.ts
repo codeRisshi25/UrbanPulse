@@ -20,7 +20,8 @@ vi.mock('../../utils/jwt.js', () => ({
 }));
 vi.mock('../../logger.js', () => ({ default: { info: vi.fn(), error: vi.fn(), warn: vi.fn() } }));
 
-import { comparePassword } from '../../utils/password.js';import { registerUser, loginUser, getUserProfile } from '../auth.service.js';
+import { comparePassword } from '../../utils/password.js';
+import { registerUser, loginUser, getUserProfile } from '../auth.service.js';
 
 const mockUser = {
   id: 'user-1',

@@ -6,20 +6,20 @@ describe('Zod Schemas', () => {
   // ── driverStatusSchema ────────────────────────────────────────
 
   describe('driverStatusSchema', () => {
-    it('accepts going offline without location', async () => {
-      const result = await driverStatusSchema.safeParseAsync({ body: { isActive: false } });
+    it('accepts going offline without location', () => {
+      const result = driverStatusSchema.safeParse({ body: { isActive: false } });
       expect(result.success).toBe(true);
     });
 
-    it('accepts going online with location', async () => {
-      const result = await driverStatusSchema.safeParseAsync({
+    it('accepts going online with location', () => {
+      const result = driverStatusSchema.safeParse({
         body: { isActive: true, location: [77.59, 12.97] },
       });
       expect(result.success).toBe(true);
     });
 
-    it('rejects going online without location (refine)', async () => {
-      const result = await driverStatusSchema.safeParseAsync({
+    it('rejects going online without location (refine)', () => {
+      const result = driverStatusSchema.safeParse({
         body: { isActive: true },
       });
       expect(result.success).toBe(false);
@@ -29,15 +29,15 @@ describe('Zod Schemas', () => {
       }
     });
 
-    it('rejects non-boolean isActive', async () => {
-      const result = await driverStatusSchema.safeParseAsync({
+    it('rejects non-boolean isActive', () => {
+      const result = driverStatusSchema.safeParse({
         body: { isActive: 'yes' },
       });
       expect(result.success).toBe(false);
     });
 
-    it('rejects location with wrong length', async () => {
-      const result = await driverStatusSchema.safeParseAsync({
+    it('rejects location with wrong length', () => {
+      const result = driverStatusSchema.safeParse({
         body: { isActive: true, location: [77.59] },
       });
       expect(result.success).toBe(false);
@@ -47,22 +47,22 @@ describe('Zod Schemas', () => {
   // ── driverLocationSchema ──────────────────────────────────────
 
   describe('driverLocationSchema', () => {
-    it('accepts valid [lon, lat] tuple', async () => {
-      const result = await driverLocationSchema.safeParseAsync({
+    it('accepts valid [lon, lat] tuple', () => {
+      const result = driverLocationSchema.safeParse({
         body: { location: [77.5946, 12.9716] },
       });
       expect(result.success).toBe(true);
     });
 
-    it('rejects string coordinates', async () => {
-      const result = await driverLocationSchema.safeParseAsync({
+    it('rejects string coordinates', () => {
+      const result = driverLocationSchema.safeParse({
         body: { location: ['77.59', '12.97'] },
       });
       expect(result.success).toBe(false);
     });
 
-    it('rejects missing location', async () => {
-      const result = await driverLocationSchema.safeParseAsync({ body: {} });
+    it('rejects missing location', () => {
+      const result = driverLocationSchema.safeParse({ body: {} });
       expect(result.success).toBe(false);
     });
   });
@@ -70,8 +70,8 @@ describe('Zod Schemas', () => {
   // ── rideSchema ────────────────────────────────────────────────
 
   describe('rideSchema', () => {
-    it('accepts valid pickup and dropoff coordinates', async () => {
-      const result = await rideSchema.safeParseAsync({
+    it('accepts valid pickup and dropoff coordinates', () => {
+      const result = rideSchema.safeParse({
         body: {
           pickupLocation: [77.5946, 12.9716],
           dropoffLocation: [77.6046, 12.9816],
@@ -80,8 +80,8 @@ describe('Zod Schemas', () => {
       expect(result.success).toBe(true);
     });
 
-    it('rejects locations with wrong number of elements', async () => {
-      const result = await rideSchema.safeParseAsync({
+    it('rejects locations with wrong number of elements', () => {
+      const result = rideSchema.safeParse({
         body: {
           pickupLocation: [77.5946],
           dropoffLocation: [77.6046, 12.9816],
@@ -90,8 +90,8 @@ describe('Zod Schemas', () => {
       expect(result.success).toBe(false);
     });
 
-    it('rejects missing dropoffLocation', async () => {
-      const result = await rideSchema.safeParseAsync({
+    it('rejects missing dropoffLocation', () => {
+      const result = rideSchema.safeParse({
         body: { pickupLocation: [77.5946, 12.9716] },
       });
       expect(result.success).toBe(false);

@@ -4,9 +4,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    // Run tests matching this glob
     include: ['src/**/*.test.ts'],
-    // Reset mocks between each test automatically
     clearMocks: true,
     restoreMocks: true,
     coverage: {
@@ -17,9 +15,9 @@ export default defineConfig({
     },
   },
   resolve: {
-    // Allow importing 'common' workspace package
+    // Point to TS source so Vitest doesn't depend on a stale/root-owned dist/
     alias: {
-      common: new URL('../../packages/common/dist/index.js', import.meta.url).pathname,
+      common: new URL('../../packages/common/index.ts', import.meta.url).pathname,
     },
   },
 });

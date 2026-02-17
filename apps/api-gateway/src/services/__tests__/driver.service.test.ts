@@ -13,6 +13,7 @@ const redisMock = vi.hoisted(() => ({
   geoadd: vi.fn(),
   geopos: vi.fn(),
   zrem: vi.fn(),
+  zscore: vi.fn(),
   set: vi.fn(),
   del: vi.fn(),
   ping: vi.fn(),
@@ -111,14 +112,26 @@ describe('driver.service', () => {
       expect(redisMock.geoadd).not.toHaveBeenCalled();
     });
 
+    it('returns error if driver not present in GEO set (stale DB state)', async () => {
+      prismaMock.driver.findUnique.mockResolvedValue(activeDriver);
+      redisMock.zscore.mockResolvedValue(null); // not in GEO set
+
+      const result = await updateDriverLocation('user-1', [77.59, 12.97]);
+      expect(result.success).toBe(false);
+      expect(result.message).toMatch(/must be online/i);
+      expect(redisMock.geoadd).not.toHaveBeenCalled();
+    });
+
     it('updates Redis GEO and refreshes heartbeat when online', async () => {
       prismaMock.driver.findUnique.mockResolvedValue(activeDriver);
+      redisMock.zscore.mockResolvedValue('123'); // driver present in GEO set
       redisMock.geoadd.mockResolvedValue(0); // 0 = updated, not new
       redisMock.set.mockResolvedValue('OK');
 
       const result = await updateDriverLocation('user-1', [77.60, 12.98]);
 
       expect(result.success).toBe(true);
+      expect(redisMock.zscore).toHaveBeenCalledWith('drivers:active', 'driver-1');
       expect(redisMock.geoadd).toHaveBeenCalledWith('drivers:active', 77.60, 12.98, 'driver-1');
       expect(redisMock.set).toHaveBeenCalledWith(
         'driver:heartbeat:driver-1',

@@ -5,6 +5,11 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**"]
     },
+    "test": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "passThroughEnv": ["NODE_ENV"]
+    },
     "dev": {
       "cache": false,
       "passThroughEnv": [

@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "build": "tsc -p tsconfig.json",
     "dev": "tsx watch src/index.ts",
     "start": "node ./dist/index.js"
@@ -21,12 +23,14 @@
     "@types/express-pino-logger": "^4.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.5.2",
+    "@vitest/coverage-v8": "^4.0.18",
     "nodemon": "^3.1.10",
     "pino-pretty": "^13.1.2",
     "prisma": "^6.16.2",
     "ts-node": "^10.9.2",
     "tsx": "^4.20.6",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "vitest": "^4.0.18"
   },
   "dependencies": {
     "@logtail/pino": "^0.5.6",

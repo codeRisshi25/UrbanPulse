@@ -9,8 +9,17 @@ const prismaMock = vi.hoisted(() => ({
   $queryRaw: vi.fn(),
 }));
 
+const queueAddMock = vi.hoisted(() => vi.fn().mockResolvedValue({ id: 'job-1' }));
+
 vi.mock('../../utils/db.js', () => ({ default: prismaMock }));
 vi.mock('../../logger.js', () => ({ default: { info: vi.fn(), error: vi.fn(), warn: vi.fn() } }));
+vi.mock('bullmq', () => {
+  const QueueMock = vi.fn(function (this: Record<string, unknown>) {
+    this.add = queueAddMock;
+    this.close = vi.fn().mockResolvedValue(undefined);
+  });
+  return { Queue: QueueMock };
+});
 
 import { createRide, cancelRide } from '../ride.service.js';
 
@@ -59,6 +68,17 @@ describe('ride.service', () => {
       expect(result.data?.id).toBe('trip-1');
       expect(result.data?.status).toBe('REQUESTED');
       expect(prismaMock.$queryRaw).toHaveBeenCalledOnce();
+      // M2: verify ride job is published to BullMQ queue
+      expect(queueAddMock).toHaveBeenCalledWith(
+        'new-ride',
+        expect.objectContaining({
+          tripId: 'trip-1',
+          riderId: 'rider-1',
+          pickupLng: 77.5946,
+          pickupLat: 12.9716,
+        }),
+        { jobId: 'trip-1' }
+      );
     });
   });
 

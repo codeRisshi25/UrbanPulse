@@ -7,3 +7,11 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
+
+  ride-worker:
+    env_file:
+      - ./.env
+    command: pnpm dev
+    volumes:
+      - .:/app
+      - /app/node_modules

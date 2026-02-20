@@ -1,4 +1,8 @@
 {
   "files": [],
-  "references": [{ "path": "apps/api-gateway" }, { "path": "packages/common" }]
+  "references": [
+    { "path": "apps/api-gateway" },
+    { "path": "apps/ride-worker" },
+    { "path": "packages/common" }
+  ]
 }

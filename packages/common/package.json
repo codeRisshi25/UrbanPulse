@@ -12,6 +12,10 @@
     "./schemas/*": {
       "import": "./dist/schemas/*.js",
       "types": "./dist/schemas/*.d.ts"
+    },
+    "./queues": {
+      "import": "./dist/queues/index.js",
+      "types": "./dist/queues/index.d.ts"
     }
   },
   "scripts": {

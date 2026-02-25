@@ -3,6 +3,7 @@
   "references": [
     { "path": "apps/api-gateway" },
     { "path": "apps/ride-worker" },
-    { "path": "packages/common" }
+    { "path": "packages/common" },
+    { "path": "packages/notifications" }
   ]
 }

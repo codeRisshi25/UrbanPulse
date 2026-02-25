@@ -13,6 +13,29 @@ const rideRequestsQueue = new Queue(QUEUE_NAMES.RIDE_REQUESTS, {
   connection: bullmqConnection,
 });
 
+// Graceful shutdown — close BullMQ queue to prevent connection leaks
+let rideRequestsQueueShutdownRegistered = false;
+
+const registerRideRequestsQueueShutdown = (queue: Queue): void => {
+  if (rideRequestsQueueShutdownRegistered) return;
+  rideRequestsQueueShutdownRegistered = true;
+
+  const shutdown = async (): Promise<void> => {
+    try {
+      await queue.close();
+    } catch (error) {
+      logger.error(error, 'Error closing rideRequestsQueue during shutdown');
+    }
+  };
+
+  process.once('beforeExit', () => { void shutdown(); });
+  (['SIGINT', 'SIGTERM', 'SIGQUIT'] as NodeJS.Signals[]).forEach((signal) => {
+    process.once(signal, () => { void shutdown(); });
+  });
+};
+
+registerRideRequestsQueueShutdown(rideRequestsQueue);
+
 export interface RideResponse {
   success: boolean;
   message: string;

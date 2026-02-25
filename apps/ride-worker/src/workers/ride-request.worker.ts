@@ -1,12 +1,6 @@
-import { Worker, Job } from 'bullmq';
-import { Queue } from 'bullmq';
+import { Worker, Job, Queue } from 'bullmq';
 import logger from '../logger.js';
-import { QUEUE_NAMES } from '../config.js';
-
-const bullmqConnection = {
-  host: process.env.REDIS_HOST || 'localhost',
-  port: Number(process.env.REDIS_PORT) || 6379,
-} as const;
+import { QUEUE_NAMES, REDIS_CONFIG } from '../config.js';
 
 export interface RideRequestJobData {
   tripId: string;
@@ -18,21 +12,21 @@ export interface RideRequestJobData {
 }
 
 const rideMatchingQueue = new Queue(QUEUE_NAMES.RIDE_MATCHING, {
-  connection: bullmqConnection,
+  connection: REDIS_CONFIG,
 });
 
 const processRideRequest = async (job: Job<RideRequestJobData>) => {
-  const { tripId, riderId, pickupLng, pickupLat } = job.data;
+  const { tripId, riderId, pickupLng, pickupLat, dropoffLng, dropoffLat } = job.data;
 
   logger.info(
-    { tripId, riderId, pickupLng, pickupLat },
+    { tripId, riderId, pickupLng, pickupLat, dropoffLng, dropoffLat },
     'Processing ride request job',
   );
 
   // Publish a ride-matching job to initiate driver matching (fully implemented in M4)
   await rideMatchingQueue.add(
     'match-driver',
-    { tripId, riderId, pickupLng, pickupLat },
+    { tripId, riderId, pickupLng, pickupLat, dropoffLng, dropoffLat },
     { jobId: `match:${tripId}` },
   );
 
@@ -40,14 +34,10 @@ const processRideRequest = async (job: Job<RideRequestJobData>) => {
 };
 
 export const createRideRequestWorker = () => {
-  const worker = new Worker<RideRequestJobData>(
-    QUEUE_NAMES.RIDE_REQUESTS,
-    processRideRequest,
-    {
-      connection: bullmqConnection,
-      concurrency: 5,
-    },
-  );
+  const worker = new Worker<RideRequestJobData>(QUEUE_NAMES.RIDE_REQUESTS, processRideRequest, {
+    connection: REDIS_CONFIG,
+    concurrency: 5,
+  });
 
   worker.on('completed', (job) => {
     logger.info({ jobId: job.id, tripId: job.data.tripId }, 'ride-request job completed');
@@ -57,5 +47,5 @@ export const createRideRequestWorker = () => {
     logger.error({ jobId: job?.id, err }, 'ride-request job failed');
   });
 
-  return worker;
+  return { worker, queue: rideMatchingQueue };
 };

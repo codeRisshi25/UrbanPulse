@@ -2,9 +2,10 @@
 
 ## Architecture
 
-Turborepo + pnpm monorepo for a ride-sharing backend. Two workspace packages:
+Turborepo + pnpm monorepo for a ride-sharing backend. Three workspace packages:
 
 - **`apps/api-gateway`** – Express 5 HTTP server (port 3001). All REST endpoints live here: auth, user, rides.
+- **`apps/ride-worker`** – Background worker for ride-related processing (BullMQ). Consumes shared types and Prisma client from `packages/common`.
 - **`packages/common`** – Shared Prisma client, Zod validation schemas, and type exports. Consumed via `"common": "workspace:^"`.
 
 Data flows: **Route → validate middleware (Zod) → authenticate middleware (JWT) → service → Prisma/raw SQL → PostgreSQL+PostGIS**.
@@ -55,11 +56,11 @@ Pino logger (`apps/api-gateway/src/logger.ts`). Use `pino-pretty` in dev. Always
 ```bash
 # Setup & run (Docker-based, includes PostGIS + Redis)
 source activate.sh    # loads aliases: dcu, dcd, dcr, dcl, dc
-dcu                   # docker-compose up -d (postgres + redis + api-gateway)
+dcu                   # docker-compose up -d (postgres + redis + api-gateway + ride-worker)
 dcl                   # tail logs
 
 # Build & typecheck
-pnpm build            # turbo build (common first, then api-gateway)
+pnpm build            # turbo build (common first, then api-gateway and ride-worker)
 pnpm typecheck        # turbo typecheck
 
 # DB migrations (run inside container or with DATABASE_URL set)

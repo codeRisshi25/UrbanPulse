@@ -1,11 +1,6 @@
 import { Worker, Job } from 'bullmq';
 import logger from '../logger.js';
-import { QUEUE_NAMES } from '../config.js';
-
-const bullmqConnection = {
-  host: process.env.REDIS_HOST || 'localhost',
-  port: Number(process.env.REDIS_PORT) || 6379,
-} as const;
+import { QUEUE_NAMES, REDIS_CONFIG } from '../config.js';
 
 export type RideLifecycleAction = 'ACCEPT' | 'VERIFY_OTP' | 'START' | 'COMPLETE' | 'CANCEL';
 
@@ -52,7 +47,7 @@ export const createRideLifecycleWorker = () => {
     QUEUE_NAMES.RIDE_LIFECYCLE,
     processRideLifecycle,
     {
-      connection: bullmqConnection,
+      connection: REDIS_CONFIG,
       concurrency: 10,
     },
   );

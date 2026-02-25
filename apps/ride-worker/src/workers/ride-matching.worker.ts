@@ -1,17 +1,14 @@
 import { Worker, Job } from 'bullmq';
 import logger from '../logger.js';
-import { QUEUE_NAMES } from '../config.js';
-
-const bullmqConnection = {
-  host: process.env.REDIS_HOST || 'localhost',
-  port: Number(process.env.REDIS_PORT) || 6379,
-} as const;
+import { QUEUE_NAMES, REDIS_CONFIG } from '../config.js';
 
 export interface RideMatchingJobData {
   tripId: string;
   riderId: string;
   pickupLng: number;
   pickupLat: number;
+  dropoffLng: number;
+  dropoffLat: number;
   attempt?: number;
 }
 
@@ -26,15 +23,11 @@ const processRideMatching = async (job: Job<RideMatchingJobData>) => {
 };
 
 export const createRideMatchingWorker = () => {
-  const worker = new Worker<RideMatchingJobData>(
-    QUEUE_NAMES.RIDE_MATCHING,
-    processRideMatching,
-    {
-      connection: bullmqConnection,
-      concurrency: 10,
-      // Support for delayed jobs needed for matching timeout cascade (M4)
-    },
-  );
+  const worker = new Worker<RideMatchingJobData>(QUEUE_NAMES.RIDE_MATCHING, processRideMatching, {
+    connection: REDIS_CONFIG,
+    concurrency: 10,
+    // Support for delayed jobs needed for matching timeout cascade (M4)
+  });
 
   worker.on('completed', (job) => {
     logger.info({ jobId: job.id, tripId: job.data.tripId }, 'ride-matching job completed');

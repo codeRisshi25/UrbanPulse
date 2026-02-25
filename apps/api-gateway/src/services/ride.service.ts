@@ -1,6 +1,40 @@
+import { Queue } from 'bullmq';
+import { QUEUE_NAMES } from 'common';
 import logger from '../logger.js';
 import prisma from '../utils/db.js';
 import type { RideInput } from 'common';
+
+const bullmqConnection = {
+  host: process.env.REDIS_HOST || 'localhost',
+  port: Number(process.env.REDIS_PORT) || 6379,
+} as const;
+
+const rideRequestsQueue = new Queue(QUEUE_NAMES.RIDE_REQUESTS, {
+  connection: bullmqConnection,
+});
+
+// Graceful shutdown — close BullMQ queue to prevent connection leaks
+let rideRequestsQueueShutdownRegistered = false;
+
+const registerRideRequestsQueueShutdown = (queue: Queue): void => {
+  if (rideRequestsQueueShutdownRegistered) return;
+  rideRequestsQueueShutdownRegistered = true;
+
+  const shutdown = async (): Promise<void> => {
+    try {
+      await queue.close();
+    } catch (error) {
+      logger.error(error, 'Error closing rideRequestsQueue during shutdown');
+    }
+  };
+
+  process.once('beforeExit', () => { void shutdown(); });
+  (['SIGINT', 'SIGTERM', 'SIGQUIT'] as NodeJS.Signals[]).forEach((signal) => {
+    process.once(signal, () => { void shutdown(); });
+  });
+};
+
+registerRideRequestsQueueShutdown(rideRequestsQueue);
 
 export interface RideResponse {
   success: boolean;
@@ -58,6 +92,22 @@ export const createRide = async (input: RideInput, riderId: string): Promise<Rid
     `;
 
     const newRide = result[0];
+
+    // Publish job to ride-requests queue for async processing
+    await rideRequestsQueue.add(
+      'new-ride',
+      {
+        tripId: newRide.id,
+        riderId: rider.id,
+        pickupLng: pickupLocation[0],
+        pickupLat: pickupLocation[1],
+        dropoffLng: dropoffLocation[0],
+        dropoffLat: dropoffLocation[1],
+      },
+      { jobId: newRide.id },
+    );
+
+    logger.info({ tripId: newRide.id }, 'Ride job published to ride-requests queue');
 
     return {
       success: true,

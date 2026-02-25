@@ -1,12 +1,14 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+import http from 'http';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import logger from './logger.js';
 import router from './routes.js';
+import { initSocketServer } from './sockets/index.js';
 
 const app = express();
 app.use(helmet());
@@ -54,7 +56,11 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
 
 const PORT = process.env.PORT || 3001;
 
-app.listen(PORT, () => {
+// Create HTTP server and attach Socket.io
+const server = http.createServer(app);
+initSocketServer(server);
+
+server.listen(PORT, () => {
   logger.info(`Server started on port ${PORT}`);
   logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
@@ -62,12 +68,12 @@ app.listen(PORT, () => {
 // Graceful shutdown
 process.on('SIGTERM', () => {
   logger.info('SIGTERM received, shutting down gracefully');
-  process.exit(0);
+  server.close(() => process.exit(0));
 });
 
 process.on('SIGINT', () => {
   logger.info('SIGINT received, shutting down gracefully');
-  process.exit(0);
+  server.close(() => process.exit(0));
 });
 
 // Unhandled promise rejection handler

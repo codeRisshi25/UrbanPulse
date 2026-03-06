@@ -18,6 +18,13 @@ enum RideStatus {
   CANCELLED
 }
 
+enum OfferStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
 // generic user model that extends to both types
 model User {
   id        String   @id @default(uuid())
@@ -31,12 +38,13 @@ model User {
 }
 
 model Driver {
-  id       String                               @id @default(uuid())
-  userId   String                               @unique
-  user     User                                 @relation(fields: [userId], references: [id])
-  isActive Boolean                              @default(false)
-  location Unsupported("geometry(Point,4326)")?
-  trips    Trip[]
+  id         String                               @id @default(uuid())
+  userId     String                               @unique
+  user       User                                 @relation(fields: [userId], references: [id])
+  isActive   Boolean                              @default(false)
+  location   Unsupported("geometry(Point,4326)")?
+  trips      Trip[]
+  rideOffers RideOffer[]
 }
 
 model Rider {
@@ -55,6 +63,21 @@ model Trip {
   status          RideStatus                          @default(REQUESTED)
   pickupLocation  Unsupported("geometry(Point,4326)")
   dropoffLocation Unsupported("geometry(Point,4326)")
+  otp             String?
+  fare            Float?
+  distance        Float?
   createdAt       DateTime                            @default(now())
   completedAt     DateTime?
+  rideOffers      RideOffer[]
+}
+
+model RideOffer {
+  id        String      @id @default(uuid())
+  tripId    String
+  trip      Trip        @relation(fields: [tripId], references: [id])
+  driverId  String
+  driver    Driver      @relation(fields: [driverId], references: [id])
+  status    OfferStatus @default(PENDING)
+  createdAt DateTime    @default(now())
+  expiresAt DateTime
 }

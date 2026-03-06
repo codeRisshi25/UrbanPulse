@@ -1,32 +1,57 @@
 import { Worker, Job } from 'bullmq';
 import logger from '../logger.js';
 import { QUEUE_NAMES, REDIS_CONFIG } from '../config.js';
+import { runCascadeMatching, handleOfferTimeout, type CascadeContext } from '../matching/index.js';
 
-export interface RideMatchingJobData {
-  tripId: string;
-  riderId: string;
-  pickupLng: number;
-  pickupLat: number;
-  dropoffLng: number;
-  dropoffLat: number;
-  attempt?: number;
+export interface RideMatchingJobData extends CascadeContext {
+  offerId?: string;
 }
 
-// Skeleton processor — fully implemented in M4 (nearest-first cascade)
+/**
+ * Process ride-matching jobs:
+ * - 'match-driver': Initial cascade from ride-request worker
+ * - 'cascade-expanded' / 'cascade-skip': Continued cascade
+ * - 'offer-timeout': Delayed job checking if an offer expired
+ */
 const processRideMatching = async (job: Job<RideMatchingJobData>) => {
-  const { tripId, riderId, attempt = 1 } = job.data;
+  const { tripId, attempt = 1 } = job.data;
 
   logger.info(
-    { tripId, riderId, attempt },
-    'ride-matching job received — matching algorithm will be implemented in M4',
+    { tripId, jobName: job.name, attempt, jobId: job.id },
+    'ride-matching job received',
   );
+
+  if (job.name === 'offer-timeout' && job.data.offerId) {
+    // Handle timeout for a specific offer
+    await handleOfferTimeout(job.data.offerId, {
+      tripId: job.data.tripId,
+      riderId: job.data.riderId,
+      pickupLng: job.data.pickupLng,
+      pickupLat: job.data.pickupLat,
+      dropoffLng: job.data.dropoffLng,
+      dropoffLat: job.data.dropoffLat,
+      attempt: job.data.attempt ?? attempt,
+      skippedDriverIds: job.data.skippedDriverIds,
+    });
+  } else {
+    // Run cascade matching (initial or continued)
+    await runCascadeMatching({
+      tripId: job.data.tripId,
+      riderId: job.data.riderId,
+      pickupLng: job.data.pickupLng,
+      pickupLat: job.data.pickupLat,
+      dropoffLng: job.data.dropoffLng,
+      dropoffLat: job.data.dropoffLat,
+      attempt: job.data.attempt ?? attempt,
+      skippedDriverIds: job.data.skippedDriverIds,
+    });
+  }
 };
 
 export const createRideMatchingWorker = () => {
   const worker = new Worker<RideMatchingJobData>(QUEUE_NAMES.RIDE_MATCHING, processRideMatching, {
     connection: REDIS_CONFIG,
     concurrency: 10,
-    // Support for delayed jobs needed for matching timeout cascade (M4)
   });
 
   worker.on('completed', (job) => {

@@ -1,5 +1,6 @@
 import type { Socket } from 'socket.io';
 import { setDriverOnline, setDriverOffline, updateDriverLocation } from '../../services/driver.service.js';
+import { acceptRide, rejectRide } from '../../services/ride.service.js';
 import type { JwtPayload } from '../../utils/jwt.js';
 import logger from '../../logger.js';
 
@@ -8,9 +9,11 @@ import logger from '../../logger.js';
  * Auto-joins the driver's personal room `driver:{driverId}`.
  *
  * Events:
- *   driver:go-online       { lng, lat }   → set online in DB + Redis GEO
- *   driver:go-offline      {}             → set offline in DB + remove from Redis GEO
- *   driver:location-update { lng, lat }   → update Redis GEO position
+ *   driver:go-online       { lng, lat }                → set online in DB + Redis GEO
+ *   driver:go-offline      {}                          → set offline in DB + remove from Redis GEO
+ *   driver:location-update { lng, lat }                → update Redis GEO position
+ *   driver:accept-ride     { tripId, offerId }         → accept ride offer (SETNX lock)
+ *   driver:reject-ride     { tripId, offerId }         → reject ride offer → cascade
  */
 export const registerDriverHandlers = (socket: Socket): void => {
     const user = socket.data.user as JwtPayload;
@@ -44,6 +47,30 @@ export const registerDriverHandlers = (socket: Socket): void => {
             await updateDriverLocation(user.userId, [data.lng, data.lat]);
         } catch (err) {
             logger.error({ err, userId: user.userId }, 'Error handling driver:location-update');
+        }
+    });
+
+    socket.on('driver:accept-ride', async (data: { tripId: string; offerId: string }) => {
+        try {
+            const result = await acceptRide(user.userId, data.tripId, data.offerId);
+            socket.emit('driver:accept-ride:ack', result);
+            if (result.success) {
+                // Auto-join the ride room
+                void socket.join(`ride:${data.tripId}`);
+            }
+        } catch (err) {
+            logger.error({ err, userId: user.userId }, 'Error handling driver:accept-ride');
+            socket.emit('error', { message: 'Failed to accept ride' });
+        }
+    });
+
+    socket.on('driver:reject-ride', async (data: { tripId: string; offerId: string }) => {
+        try {
+            const result = await rejectRide(user.userId, data.tripId, data.offerId);
+            socket.emit('driver:reject-ride:ack', result);
+        } catch (err) {
+            logger.error({ err, userId: user.userId }, 'Error handling driver:reject-ride');
+            socket.emit('error', { message: 'Failed to reject ride' });
         }
     });
 };

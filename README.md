@@ -16,11 +16,11 @@
 
 ---
 
-## What is this?
+## What is Urban Pulse ?
 
-UrbanPulse is a **full ride-sharing backend** — think of it as the engine behind apps like Uber/Ola. A rider requests a ride, the system finds the nearest available driver, handles the entire lifecycle through completion, and calculates the fare — all in real-time.
+UrbanPulse is a **full ride-sharing backend** , think of it as the engine behind apps like Uber/Ola. A rider requests a ride, the system finds the nearest available driver, handles the entire lifecycle through completion, and calculates the fare , all in real-time.
 
-This isn't a tutorial project. It's a distributed system with **race condition protection**, **cascading driver matching**, **cross-process event emission**, and **geospatial queries** — the same patterns used in production ride-sharing platforms.
+It's a distributed system with **race condition protection**, **cascading driver matching**, **cross-process event emission**, and **geospatial queries** — the same patterns used in production ride-sharing platforms.
 
 ---
 
@@ -51,18 +51,18 @@ Rider requests ride
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────┐
+┌──────────────────────────────────────────────────────┐
 │                    API Gateway                       │
 │  Express REST API + Socket.io WebSocket Server       │
 │  Auth (JWT) • Rate Limiting • Zod Validation         │
 └──────────────┬──────────────────────┬────────────────┘
                │ BullMQ Jobs          │ Redis Pub/Sub
                ▼                      ▼
-┌──────────────────────┐    ┌────────────────────┐
+┌───────────────────────┐    ┌────────────────────┐
 │     Ride Worker       │    │   Notifications    │
 │  Matching • Lifecycle │    │   Socket Adapter   │
 │  State Machine • OTP  │    │   Cross-process    │
-└──────────┬───────────┘    └────────────────────┘
+└──────────┬────────────┘    └────────────────────┘
            │
      ┌─────┴─────┐
      ▼           ▼

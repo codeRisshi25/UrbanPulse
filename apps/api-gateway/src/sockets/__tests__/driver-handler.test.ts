@@ -17,6 +17,16 @@ vi.mock('../../services/ride.service.js', () => ({
     acceptRide: acceptRideMock,
     rejectRide: rejectRideMock,
 }));
+vi.mock('../../utils/redis.js', () => ({
+    default: { set: vi.fn(), geopos: vi.fn() },
+}));
+vi.mock('../../utils/db.js', () => ({
+    default: {
+        driver: { findUnique: vi.fn() },
+        trip: { findFirst: vi.fn() },
+        $queryRaw: vi.fn(),
+    },
+}));
 vi.mock('../../logger.js', () => ({
     default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
@@ -30,6 +40,7 @@ const makeSocket = (userId: string): Socket & { _trigger: (e: string, ...a: unkn
         data: { user: { userId, role: 'driver' } },
         join: vi.fn().mockResolvedValue(undefined),
         emit: vi.fn(),
+        to: vi.fn().mockReturnValue({ emit: vi.fn() }),
         on: vi.fn((event: string, handler: (...args: unknown[]) => void) => {
             listeners[event] = handler;
         }),

@@ -345,3 +345,283 @@ export const driverCancelRide = async (userId: string, tripId: string): Promise<
     throw new Error('Could not cancel ride. Please try again.');
   }
 };
+
+// ─── COMPLETE RIDE ────────────────────────────────────────────────────────
+
+export const completeRide = async (userId: string, tripId: string): Promise<RideResponse> => {
+  try {
+    const driver = await prisma.driver.findUnique({ where: { userId } });
+    if (!driver) return { success: false, message: 'Driver not found' };
+
+    const trip = await prisma.trip.findUnique({ where: { id: tripId } });
+    if (!trip) return { success: false, message: 'Trip not found' };
+    if (trip.driverId !== driver.id) return { success: false, message: 'You are not assigned to this ride' };
+    if (trip.status !== 'STARTED') return { success: false, message: 'Ride is not in STARTED state' };
+
+    await rideLifecycleQueue.add(
+      'lifecycle-complete',
+      {
+        action: 'COMPLETE' as const,
+        tripId,
+        driverId: driver.id,
+      },
+      { jobId: `complete:${tripId}` },
+    );
+
+    return { success: true, message: 'Ride completion submitted' };
+  } catch (error) {
+    logger.error(error, 'Error completing ride');
+    throw new Error('Could not complete ride. Please try again.');
+  }
+};
+
+// ─── RIDE HISTORY ─────────────────────────────────────────────────────────
+
+export const getRideHistory = async (
+  userId: string,
+  role: string,
+  page: number,
+  limit: number,
+): Promise<RideResponse> => {
+  try {
+    let whereClause = '';
+    let countClause = '';
+
+    if (role === 'rider') {
+      const rider = await prisma.rider.findUnique({ where: { userId }, select: { id: true } });
+      if (!rider) return { success: false, message: 'Rider not found' };
+      whereClause = `WHERE t."riderId" = '${rider.id}'`;
+      countClause = whereClause;
+    } else {
+      const driver = await prisma.driver.findUnique({ where: { userId }, select: { id: true } });
+      if (!driver) return { success: false, message: 'Driver not found' };
+      whereClause = `WHERE t."driverId" = '${driver.id}'`;
+      countClause = whereClause;
+    }
+
+    const offset = (page - 1) * limit;
+
+    const rides = await prisma.$queryRawUnsafe<Record<string, unknown>[]>(`
+      SELECT
+        t.id,
+        t.status,
+        ST_AsText(t."pickupLocation") as "pickupLocation",
+        ST_AsText(t."dropoffLocation") as "dropoffLocation",
+        t.fare,
+        t.distance,
+        t."createdAt",
+        t."completedAt"
+      FROM "Trip" t
+      ${whereClause}
+      ORDER BY t."createdAt" DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `);
+
+    const countResult = await prisma.$queryRawUnsafe<{ count: bigint }[]>(`
+      SELECT COUNT(*) as count FROM "Trip" t ${countClause}
+    `);
+    const total = Number(countResult[0]?.count ?? 0);
+
+    return {
+      success: true,
+      message: 'Ride history retrieved',
+      data: {
+        rides,
+        pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+      },
+    };
+  } catch (error) {
+    logger.error(error, 'Error fetching ride history');
+    throw new Error('Could not fetch ride history.');
+  }
+};
+
+// ─── RIDE DETAIL ──────────────────────────────────────────────────────────
+
+export const getRideDetail = async (userId: string, tripId: string): Promise<RideResponse> => {
+  try {
+    // Check access: must be the rider or assigned driver
+    const rider = await prisma.rider.findUnique({ where: { userId }, select: { id: true } });
+    const driver = await prisma.driver.findUnique({ where: { userId }, select: { id: true } });
+
+    const trip = await prisma.$queryRaw<Record<string, unknown>[]>`
+      SELECT
+        t.id,
+        t."riderId",
+        t."driverId",
+        t.status,
+        t.otp,
+        t.fare,
+        t.distance,
+        ST_AsText(t."pickupLocation") as "pickupLocation",
+        ST_AsText(t."dropoffLocation") as "dropoffLocation",
+        t."createdAt",
+        t."completedAt"
+      FROM "Trip" t WHERE t.id = ${tripId}
+    `;
+
+    if (!trip.length) return { success: false, message: 'Trip not found' };
+
+    const tripData = trip[0];
+    const isRider = rider && tripData.riderId === rider.id;
+    const isDriver = driver && tripData.driverId === driver.id;
+
+    if (!isRider && !isDriver) {
+      return { success: false, message: 'You do not have access to this ride' };
+    }
+
+    return {
+      success: true,
+      message: 'Ride detail retrieved',
+      data: tripData,
+    };
+  } catch (error) {
+    logger.error(error, 'Error fetching ride detail');
+    throw new Error('Could not fetch ride detail.');
+  }
+};
+
+// ─── DRIVER STATS ─────────────────────────────────────────────────────────
+
+export const getDriverStats = async (userId: string): Promise<RideResponse> => {
+  try {
+    const driver = await prisma.driver.findUnique({ where: { userId }, select: { id: true } });
+    if (!driver) return { success: false, message: 'Driver not found' };
+
+    const stats = await prisma.trip.aggregate({
+      where: { driverId: driver.id, status: 'COMPLETED' },
+      _count: { id: true },
+      _sum: { fare: true, distance: true },
+    });
+
+    return {
+      success: true,
+      message: 'Driver stats retrieved',
+      data: {
+        totalRides: stats._count.id,
+        totalEarnings: stats._sum.fare ?? 0,
+        totalDistance: stats._sum.distance ?? 0,
+      },
+    };
+  } catch (error) {
+    logger.error(error, 'Error fetching driver stats');
+    throw new Error('Could not fetch driver stats.');
+  }
+};
+
+// ─── DRIVER CURRENT RIDE ─────────────────────────────────────────────────
+
+export const getDriverCurrentRide = async (userId: string): Promise<RideResponse> => {
+  try {
+    const driver = await prisma.driver.findUnique({ where: { userId }, select: { id: true } });
+    if (!driver) return { success: false, message: 'Driver not found' };
+
+    const trip = await prisma.$queryRaw<Record<string, unknown>[]>`
+      SELECT
+        t.id,
+        t."riderId",
+        t.status,
+        t.otp,
+        ST_AsText(t."pickupLocation") as "pickupLocation",
+        ST_AsText(t."dropoffLocation") as "dropoffLocation",
+        t."createdAt",
+        r."userId" as "riderUserId"
+      FROM "Trip" t
+      JOIN "Rider" r ON r.id = t."riderId"
+      WHERE t."driverId" = ${driver.id}
+        AND t.status IN ('ACCEPTED', 'STARTED')
+      ORDER BY t."createdAt" DESC
+      LIMIT 1
+    `;
+
+    if (!trip.length) {
+      return { success: true, message: 'No active ride', data: { ride: null } };
+    }
+
+    // Get rider basic info
+    const riderUser = await prisma.user.findUnique({
+      where: { id: trip[0].riderUserId as string },
+      select: { name: true, number: true },
+    });
+
+    return {
+      success: true,
+      message: 'Current ride retrieved',
+      data: { ride: { ...trip[0], riderName: riderUser?.name, riderPhone: riderUser?.number } },
+    };
+  } catch (error) {
+    logger.error(error, 'Error fetching driver current ride');
+    throw new Error('Could not fetch current ride.');
+  }
+};
+
+// ─── RIDER CURRENT RIDE ──────────────────────────────────────────────────
+
+export const getRiderCurrentRide = async (userId: string): Promise<RideResponse> => {
+  try {
+    const rider = await prisma.rider.findUnique({ where: { userId }, select: { id: true } });
+    if (!rider) return { success: false, message: 'Rider not found' };
+
+    const trip = await prisma.$queryRaw<Record<string, unknown>[]>`
+      SELECT
+        t.id,
+        t."driverId",
+        t.status,
+        t.otp,
+        ST_AsText(t."pickupLocation") as "pickupLocation",
+        ST_AsText(t."dropoffLocation") as "dropoffLocation",
+        t."createdAt"
+      FROM "Trip" t
+      WHERE t."riderId" = ${rider.id}
+        AND t.status IN ('REQUESTED', 'ACCEPTED', 'STARTED')
+      ORDER BY t."createdAt" DESC
+      LIMIT 1
+    `;
+
+    if (!trip.length) {
+      return { success: true, message: 'No active ride', data: { ride: null } };
+    }
+
+    const tripData = trip[0] as Record<string, unknown>;
+
+    // If driver is assigned, get their info + location
+    if (tripData.driverId) {
+      const driverRecord = await prisma.driver.findUnique({
+        where: { id: tripData.driverId as string },
+        select: { userId: true },
+      });
+      if (driverRecord) {
+        const driverUser = await prisma.user.findUnique({
+          where: { id: driverRecord.userId },
+          select: { name: true, number: true },
+        });
+        tripData.driverName = driverUser?.name;
+        tripData.driverPhone = driverUser?.number;
+
+        // If STARTED, include driver's current location from Redis GEO
+        if (tripData.status === 'STARTED') {
+          try {
+            const pos = await redis.geopos('drivers:active', driverRecord.userId);
+            if (pos && pos[0]) {
+              tripData.driverLocation = {
+                lng: parseFloat(pos[0][0] as string),
+                lat: parseFloat(pos[0][1] as string),
+              };
+            }
+          } catch {
+            // Redis GEO might not have position — that's ok
+          }
+        }
+      }
+    }
+
+    return {
+      success: true,
+      message: 'Current ride retrieved',
+      data: { ride: tripData },
+    };
+  } catch (error) {
+    logger.error(error, 'Error fetching rider current ride');
+    throw new Error('Could not fetch current ride.');
+  }
+};

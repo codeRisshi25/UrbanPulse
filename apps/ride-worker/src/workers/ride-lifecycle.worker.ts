@@ -272,7 +272,15 @@ const handleComplete = async (data: RideLifecycleJobData): Promise<void> => {
 
   const trip = await prisma.trip.findUnique({ where: { id: tripId } });
   if (!trip) throw new Error(`Trip ${tripId} not found`);
-  validateTransition(trip.status, 'COMPLETED');
+
+  // Idempotent: if already COMPLETED (e.g. BullMQ retry after partial failure),
+  // skip validation + DB update but still run cleanup/notifications
+  const alreadyCompleted = trip.status === 'COMPLETED';
+  if (!alreadyCompleted) {
+    validateTransition(trip.status, 'COMPLETED');
+  }
+
+  const completedAt = trip.completedAt ?? new Date();
 
   // 1. Calculate distance using PostGIS ST_DistanceSphere
   const distanceResult = await prisma.$queryRaw<{ distance_meters: number }[]>`
@@ -290,16 +298,18 @@ const handleComplete = async (data: RideLifecycleJobData): Promise<void> => {
   const calculatedFare = BASE_FARE + distanceKm * PER_KM_RATE;
   const fare = Math.round(Math.max(MIN_FARE, calculatedFare) * 100) / 100;
 
-  // 3. Update Trip: COMPLETED, fare, distance, completedAt
-  await prisma.trip.update({
-    where: { id: tripId },
-    data: {
-      status: 'COMPLETED',
-      fare,
-      distance: Math.round(distanceKm * 100) / 100,
-      completedAt: new Date(),
-    },
-  });
+  // 3. Update Trip: COMPLETED, fare, distance, completedAt (skip if already done)
+  if (!alreadyCompleted) {
+    await prisma.trip.update({
+      where: { id: tripId },
+      data: {
+        status: 'COMPLETED',
+        fare,
+        distance: Math.round(distanceKm * 100) / 100,
+        completedAt,
+      },
+    });
+  }
 
   // 4. Remove driver from busy set
   if (trip.driverId) {
@@ -330,7 +340,7 @@ const handleComplete = async (data: RideLifecycleJobData): Promise<void> => {
     distanceKm: Math.round(distanceKm * 100) / 100,
     pickupLocation: locations[0]?.pickup ?? '',
     dropoffLocation: locations[0]?.dropoff ?? '',
-    completedAt: new Date().toISOString(),
+    completedAt: completedAt.toISOString(),
   });
 
   // Also notify rider personal room

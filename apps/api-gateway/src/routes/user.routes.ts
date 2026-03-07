@@ -170,7 +170,7 @@ userRouter.get('/driver/current-ride', authenticate, authorize('driver'), async 
  * @desc    Rider's current active ride (REQUESTED, ACCEPTED, or STARTED)
  * @access  Private
  */
-userRouter.get('/rider/current-ride', authenticate, async (req: Request, res: Response) => {
+userRouter.get('/rider/current-ride', authenticate, authorize('rider'), async (req: Request, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ success: false, message: 'Unauthorized' });
     const result = await getRiderCurrentRide(req.user.userId);

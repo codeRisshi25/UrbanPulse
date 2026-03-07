@@ -470,6 +470,11 @@ export const getRideDetail = async (userId: string, tripId: string): Promise<Rid
       return { success: false, message: 'You do not have access to this ride' };
     }
 
+    // OTP should only be visible to the rider, never the driver
+    if (!isRider) {
+      delete tripData.otp;
+    }
+
     return {
       success: true,
       message: 'Ride detail retrieved',
@@ -521,7 +526,6 @@ export const getDriverCurrentRide = async (userId: string): Promise<RideResponse
         t.id,
         t."riderId",
         t.status,
-        t.otp,
         ST_AsText(t."pickupLocation") as "pickupLocation",
         ST_AsText(t."dropoffLocation") as "dropoffLocation",
         t."createdAt",
@@ -602,10 +606,11 @@ export const getRiderCurrentRide = async (userId: string): Promise<RideResponse>
         if (tripData.status === 'STARTED') {
           try {
             const pos = await redis.geopos('drivers:active', driverRecord.userId);
-            if (pos && pos[0]) {
+            const coords = pos?.[0];
+            if (coords?.[0] != null && coords?.[1] != null) {
               tripData.driverLocation = {
-                lng: parseFloat(pos[0][0] as string),
-                lat: parseFloat(pos[0][1] as string),
+                lng: parseFloat(coords[0] as string),
+                lat: parseFloat(coords[1] as string),
               };
             }
           } catch {

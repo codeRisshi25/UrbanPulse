@@ -12,7 +12,7 @@ M5 completes the end-to-end ride-sharing flow. After a ride is STARTED (M4), the
 
 ## Throttled Location Broadcast
 
-```
+```text
 Driver GPS update (every ~1s)
     │
     ▼
@@ -44,7 +44,7 @@ Without throttling, a driver sending GPS every second = 60 PostGIS queries/minut
 
 ## Ride Completion — COMPLETE Action
 
-```
+```text
 POST /rides/:tripId/complete  (driver)
     │
     ▼
@@ -111,7 +111,7 @@ This avoids DB queries and gives real-time position.
 
 ## Complete Flow (M1–M5)
 
-```
+```text
 1. Rider: POST /rides/create → REQUESTED
 2. Worker: cascade match → nearest driver → ride:offer
 3. Driver: driver:accept-ride → SETNX lock → ACCEPTED

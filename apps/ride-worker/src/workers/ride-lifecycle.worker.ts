@@ -11,6 +11,9 @@ import {
   OTP_TTL_SECONDS,
   MAX_OTP_ATTEMPTS,
   RIDE_LOCK_KEY_PREFIX,
+  BASE_FARE,
+  PER_KM_RATE,
+  MIN_FARE,
 } from 'common';
 
 const prisma = new PrismaClient();
@@ -262,6 +265,100 @@ const handleCancel = async (data: RideLifecycleJobData): Promise<void> => {
   logger.info({ tripId, reason }, 'Ride CANCELLED');
 };
 
+// ─── COMPLETE ─────────────────────────────────────────────────────────────
+
+const handleComplete = async (data: RideLifecycleJobData): Promise<void> => {
+  const { tripId, driverId } = data;
+
+  const trip = await prisma.trip.findUnique({ where: { id: tripId } });
+  if (!trip) throw new Error(`Trip ${tripId} not found`);
+
+  // Idempotent: if already COMPLETED (e.g. BullMQ retry after partial failure),
+  // skip validation + DB update but still run cleanup/notifications
+  const alreadyCompleted = trip.status === 'COMPLETED';
+  if (!alreadyCompleted) {
+    validateTransition(trip.status, 'COMPLETED');
+  }
+
+  const completedAt = trip.completedAt ?? new Date();
+
+  // 1. Calculate distance using PostGIS ST_DistanceSphere
+  const distanceResult = await prisma.$queryRaw<{ distance_meters: number }[]>`
+    SELECT ST_DistanceSphere(
+      "pickupLocation"::geometry,
+      "dropoffLocation"::geometry
+    ) as distance_meters
+    FROM "Trip" WHERE id = ${tripId}
+  `;
+
+  const distanceMeters = distanceResult[0]?.distance_meters ?? 0;
+  const distanceKm = distanceMeters / 1000;
+
+  // 2. Calculate fare: max(MIN_FARE, BASE_FARE + distance_km * PER_KM_RATE)
+  const calculatedFare = BASE_FARE + distanceKm * PER_KM_RATE;
+  const fare = Math.round(Math.max(MIN_FARE, calculatedFare) * 100) / 100;
+
+  // 3. Update Trip: COMPLETED, fare, distance, completedAt (skip if already done)
+  if (!alreadyCompleted) {
+    await prisma.trip.update({
+      where: { id: tripId },
+      data: {
+        status: 'COMPLETED',
+        fare,
+        distance: Math.round(distanceKm * 100) / 100,
+        completedAt,
+      },
+    });
+  }
+
+  // 4. Remove driver from busy set
+  if (trip.driverId) {
+    const driver = await prisma.driver.findUnique({
+      where: { id: trip.driverId },
+      select: { userId: true },
+    });
+    if (driver) {
+      await redis.srem(DRIVERS_BUSY_KEY, driver.userId);
+    }
+  }
+
+  // 5. Clean up Redis keys
+  await redis.del(`${RIDE_LOCK_KEY_PREFIX}${tripId}`);
+  await redis.del(`${OTP_KEY_PREFIX}${tripId}`);
+  await redis.del(`${OTP_ATTEMPTS_KEY_PREFIX}${tripId}`);
+
+  // 6. Get pickup/dropoff as text for notification
+  const locations = await prisma.$queryRaw<{ pickup: string; dropoff: string }[]>`
+    SELECT ST_AsText("pickupLocation") as pickup, ST_AsText("dropoffLocation") as dropoff
+    FROM "Trip" WHERE id = ${tripId}
+  `;
+
+  // 7. Notify ride room
+  await emitToRoom(`ride:${tripId}`, 'ride:completed', {
+    tripId,
+    fare,
+    distanceKm: Math.round(distanceKm * 100) / 100,
+    pickupLocation: locations[0]?.pickup ?? '',
+    dropoffLocation: locations[0]?.dropoff ?? '',
+    completedAt: completedAt.toISOString(),
+  });
+
+  // Also notify rider personal room
+  const rider = await prisma.rider.findUnique({
+    where: { id: trip.riderId },
+    select: { userId: true },
+  });
+  if (rider) {
+    await emitToRoom(`rider:${rider.userId}`, 'ride:completed', {
+      tripId,
+      fare,
+      distanceKm: Math.round(distanceKm * 100) / 100,
+    });
+  }
+
+  logger.info({ tripId, fare, distanceKm, driverId }, 'Ride COMPLETED');
+};
+
 // ─── MAIN PROCESSOR ──────────────────────────────────────────────────────
 
 const processRideLifecycle = async (job: Job<RideLifecycleJobData>) => {
@@ -281,7 +378,7 @@ const processRideLifecycle = async (job: Job<RideLifecycleJobData>) => {
       logger.info({ tripId }, 'START action — handled via VERIFY_OTP flow');
       break;
     case 'COMPLETE':
-      logger.info({ tripId }, 'COMPLETE action — will be implemented in M5');
+      await handleComplete(job.data);
       break;
     case 'CANCEL':
       await handleCancel(job.data);

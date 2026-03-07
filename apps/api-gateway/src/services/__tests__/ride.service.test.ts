@@ -4,18 +4,20 @@ const prismaMock = vi.hoisted(() => ({
   user: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
   driver: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
   rider: { findUnique: vi.fn(), create: vi.fn() },
-  trip: { findFirst: vi.fn(), findUnique: vi.fn(), update: vi.fn() },
+  trip: { findFirst: vi.fn(), findUnique: vi.fn(), update: vi.fn(), aggregate: vi.fn() },
   rideOffer: { findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
   $transaction: vi.fn(),
   $queryRaw: vi.fn(),
+  $queryRawUnsafe: vi.fn(),
 }));
 
 const queueAddMock = vi.hoisted(() => vi.fn().mockResolvedValue({ id: 'job-1' }));
 const redisSetMock = vi.hoisted(() => vi.fn());
+const redisGeoposMock = vi.hoisted(() => vi.fn());
 
 vi.mock('../../utils/db.js', () => ({ default: prismaMock }));
 vi.mock('../../utils/redis.js', () => ({
-  default: { set: redisSetMock, get: vi.fn(), del: vi.fn() },
+  default: { set: redisSetMock, get: vi.fn(), del: vi.fn(), geopos: redisGeoposMock },
 }));
 vi.mock('../../logger.js', () => ({ default: { info: vi.fn(), error: vi.fn(), warn: vi.fn() } }));
 vi.mock('bullmq', () => {
@@ -26,7 +28,7 @@ vi.mock('bullmq', () => {
   return { Queue: QueueMock };
 });
 
-import { createRide, cancelRide, acceptRide, rejectRide, verifyOtp } from '../ride.service.js';
+import { createRide, cancelRide, acceptRide, rejectRide, verifyOtp, completeRide, getDriverStats } from '../ride.service.js';
 
 const mockRider = { id: 'rider-1', userId: 'user-1' };
 const mockDriver = { id: 'driver-1', userId: 'user-driver-1' };
@@ -230,6 +232,71 @@ describe('ride.service', () => {
         }),
         expect.anything()
       );
+    });
+  });
+
+  // ── completeRide ──────────────────────────────────────────────
+
+  describe('completeRide', () => {
+    it('returns error if ride is not in STARTED state', async () => {
+      prismaMock.driver.findUnique.mockResolvedValue(mockDriver);
+      prismaMock.trip.findUnique.mockResolvedValue({ id: 'trip-1', driverId: 'driver-1', status: 'ACCEPTED' });
+      const result = await completeRide('user-driver-1', 'trip-1');
+      expect(result.success).toBe(false);
+      expect(result.message).toMatch(/not in STARTED/i);
+    });
+
+    it('publishes COMPLETE job when ride is STARTED', async () => {
+      prismaMock.driver.findUnique.mockResolvedValue(mockDriver);
+      prismaMock.trip.findUnique.mockResolvedValue({ id: 'trip-1', driverId: 'driver-1', status: 'STARTED' });
+
+      const result = await completeRide('user-driver-1', 'trip-1');
+
+      expect(result.success).toBe(true);
+      expect(result.message).toMatch(/completion submitted/i);
+      expect(queueAddMock).toHaveBeenCalledWith(
+        'lifecycle-complete',
+        expect.objectContaining({
+          action: 'COMPLETE',
+          tripId: 'trip-1',
+          driverId: 'driver-1',
+        }),
+        expect.objectContaining({ jobId: 'complete:trip-1' })
+      );
+    });
+
+    it('returns error if driver is not assigned to trip', async () => {
+      prismaMock.driver.findUnique.mockResolvedValue({ id: 'driver-2', userId: 'user-driver-2' });
+      prismaMock.trip.findUnique.mockResolvedValue({ id: 'trip-1', driverId: 'driver-1', status: 'STARTED' });
+      const result = await completeRide('user-driver-2', 'trip-1');
+      expect(result.success).toBe(false);
+      expect(result.message).toMatch(/not assigned/i);
+    });
+  });
+
+  // ── getDriverStats ────────────────────────────────────────────
+
+  describe('getDriverStats', () => {
+    it('returns error if driver not found', async () => {
+      prismaMock.driver.findUnique.mockResolvedValue(null);
+      const result = await getDriverStats('user-unknown');
+      expect(result.success).toBe(false);
+      expect(result.message).toMatch(/driver not found/i);
+    });
+
+    it('returns aggregate stats for completed rides', async () => {
+      prismaMock.driver.findUnique.mockResolvedValue(mockDriver);
+      prismaMock.trip.aggregate.mockResolvedValue({
+        _count: { id: 5 },
+        _sum: { fare: 650.50, distance: 42.3 },
+      });
+
+      const result = await getDriverStats('user-driver-1');
+
+      expect(result.success).toBe(true);
+      expect(result.data?.totalRides).toBe(5);
+      expect(result.data?.totalEarnings).toBe(650.50);
+      expect(result.data?.totalDistance).toBe(42.3);
     });
   });
 });
